@@ -1,0 +1,26 @@
+version: "3.10"
+
+services:
+  db:
+    env_file:
+      - .env
+    image: postgres
+    restart: always
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB:${DB_NAME}
+      - POSTGRES_USER:${POSTGRES_USER}
+      - POSTGRES_PASSWORD:${POSTGRES_PASSWORD}
+  web:
+    env_file:
+      - .env
+    build: .
+    command: python manage.py collectstatic
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db

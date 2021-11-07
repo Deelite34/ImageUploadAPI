@@ -16,8 +16,9 @@ services:
     env_file:
       - .env
     build: .
-    command: python manage.py collectstatic
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "python manage.py runserver 0.0.0.0:8000"
+
     volumes:
       - .:/code
     ports:

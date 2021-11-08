@@ -18,7 +18,12 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+<<<<<<< HEAD
+MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
+TEST_MEDIA_ROOT = os.path.join(BASE_DIR, 'api', 'test')
+=======
 MEDIA_ROOT = OsPath.abspath('uploads')
+>>>>>>> 213ee74adbbaa7e625c70b4e25ace86d4c3fa404
 
 load_dotenv()
 DB_NAME = environ['DB_NAME']

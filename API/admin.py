@@ -5,7 +5,8 @@ from .models import APIUserProfile, CustomThumbnailSize,\
 
 class AccountTypePermissionsAdmin(admin.ModelAdmin):
     list_display = ('name', 'create_200px_thumbnail_perm', 'create_400px_thumbnail_perm',
-                    'get_original_img_link_perm', 'create_time_limited_link_perm')
+                    'create_original_img_link_perm', 'create_time_limited_link_perm',
+                    'create_custom_sized_thumbnail_perm')
 
 
 class UserProfileAdmin(admin.ModelAdmin):

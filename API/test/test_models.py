@@ -53,7 +53,7 @@ class TestStoredImageModel:
     def test_to_string(self):
         # Create and get User
         test_user = User.objects.create(username='test_user', password='QFSV#^@#HE')
-        # Create and get APIUserProfile
+        # Create and get APIUserPrpipofile
         api_user_profile_object = APIUserProfile.objects.create(user=test_user)
         # Create and get mock image to be used as file field for StoredImage
         mock_image_path = "test_image.png"

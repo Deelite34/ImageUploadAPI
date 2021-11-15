@@ -1,39 +1,43 @@
 import os
+from datetime import datetime, timedelta
+
 from django.core.validators import MaxValueValidator
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
+from django.utils.crypto import get_random_string
+
+from .utils import user_directory_path
 from .custom_validators import MinValueValidatorIgnoreNull, MaxValueValidatorIgnoreNull, \
                                validate_image_type
 
 
-def user_directory_path(instance, filename):
-    """Used for specifying unique for each user file path of
-    stored files, using his ID number"""
-    return 'user_{0}/{1}'.format(instance.owner.user.id, filename)
-
-
 class CustomThumbnailSize(models.Model):
-    """Contains custom sizes of thumbnail available to choose,
-    when selecting account type"""
+    """
+    Contains custom sizes of thumbnail available to choose,
+    when selecting account type.
+    """
 
-    # We don't want to have our server create, store and display too big images
+    # We don't want to have our server generate too big images
     size = models.PositiveSmallIntegerField(validators=[MaxValueValidator(4096)])
 
     def __str__(self):
-        return f'{self.size}x{self.size} px'
+        return f'{self.size}x{self.size}'
 
 
 class AccountTypePermissions(models.Model):
-    """Contains information about account type and its permissions.
+    """
+    Contains information about account type and its permissions.
     Custom thumbnail sizes can be added, by linking to CustomThumbnailSize
-    trough custom_size foreign key."""
+    trough custom_size foreign key.
+    """
 
     name = models.CharField(max_length=50)
     create_200px_thumbnail_perm = models.BooleanField(default=False)
     create_400px_thumbnail_perm = models.BooleanField(default=False)
-    get_original_img_link_perm = models.BooleanField(default=False)
+    create_original_img_link_perm = models.BooleanField(default=False)
+    create_custom_sized_thumbnail_perm = models.BooleanField(default=False)
     create_time_limited_link_perm = models.BooleanField(default=False)
-
     custom_size = models.ManyToManyField(CustomThumbnailSize, blank=True,
                                          default=None)
 
@@ -42,9 +46,10 @@ class AccountTypePermissions(models.Model):
 
 
 class APIUserProfile(models.Model):
-    """Specifies information how can specific user
-    use the api trough account_type field"""
-
+    """
+    Specifies profile type,
+    which contains information on allowed for that type thumbnail sizes, for specific user
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     account_type = models.ForeignKey(AccountTypePermissions, null=True, blank=True,
                                      on_delete=models.SET_NULL)
@@ -54,9 +59,16 @@ class APIUserProfile(models.Model):
 
 
 class StoredImage(models.Model):
+    """
+    Data on image uploaded by user
+    """
     owner = models.ForeignKey(APIUserProfile, on_delete=models.CASCADE)
-    file = models.ImageField(upload_to=user_directory_path, validators=[
-                             validate_image_type])
+    img_height = models.PositiveIntegerField(blank=True)
+    img_width = models.PositiveIntegerField(blank=True)
+    file = models.ImageField(height_field='img_height',
+                             width_field='img_width',
+                             upload_to=user_directory_path,
+                             validators=[validate_image_type])
 
     def __str__(self):
         return f'{os.path.basename(self.file.name)}'
@@ -64,16 +76,33 @@ class StoredImage(models.Model):
 
 class GeneratedImage(models.Model):
     """
-    Information on created, based
+    Data on images generated using source image and thumbnail sizes permissions
     """
-    original_image = models.ForeignKey(APIUserProfile, on_delete=models.CASCADE)
-    url = models.URLField()
-    filename = models.CharField(max_length=100)
+    source_image = models.ForeignKey(StoredImage, related_name='thumbnails', on_delete=models.PROTECT)
+    modified_image = models.ImageField(blank=True)
+    slug = models.SlugField(max_length=15, blank=True)
     expire_time = models.IntegerField(default=None, blank=True, null=True, validators=[
         MinValueValidatorIgnoreNull(300),
         MaxValueValidatorIgnoreNull(30000)
     ])
-    size = models.PositiveSmallIntegerField()
+    expire_date = models.DateTimeField(blank=True, null=True)  # checked when img is accessed
+    type = models.CharField(max_length=100)
+    created = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f'{self.id}'
+
+    def save(self, *args, **kwargs):
+        """
+        In addition to standard save procedure, generate unique slug
+        used for URL and set expire_date if expire_time is set
+        """
+        if not self.slug:
+            self.slug = get_random_string(15)
+        while GeneratedImage.objects.filter(slug=self.slug).count() != 0:
+            self.slug = get_random_string(15)
+
+        if self.expire_time is not None and self.expire_date is None:
+            now = datetime.now()
+            self.expire_date = now + timedelta(seconds=int(self.expire_time))
+        super().save(*args, **kwargs)

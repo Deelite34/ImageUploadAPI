@@ -1,32 +1,15 @@
 import os
-from datetime import datetime
-
-from easy_thumbnails.fields import ThumbnailerImageField
+from datetime import datetime, timedelta
 
 from django.core.validators import MaxValueValidator
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from sorl.thumbnail import ImageField as SorlImageField
-import easy_thumbnails
+
+from .utils import user_directory_path
 from .custom_validators import MinValueValidatorIgnoreNull, MaxValueValidatorIgnoreNull, \
                                validate_image_type
-from ImageUploadAPI.settings import MEDIA_ROOT
-
-
-def user_directory_path(instance, filename):
-    """Used for specifying unique for each user file path of
-    stored files, using his ID number"""
-    print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUPLOADING')
-    print('user_{0}/{1}'.format(instance.owner.user.id, filename))
-    #return 'user_{0}/{1}'.format(instance.owner.user.id, filename)
-    return 'user_{0}/{1}'.format(instance.owner.user.id, filename)
-
-
-def user_thumbnail_path(instance, filename):
-    return 'user_{0}/thumbnail/{1}'.format(instance.owner.user.id, filename)
-
 
 
 class CustomThumbnailSize(models.Model):
@@ -67,7 +50,6 @@ class APIUserProfile(models.Model):
     Specifies profile type,
     which contains information on allowed for that type thumbnail sizes, for specific user
     """
-
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     account_type = models.ForeignKey(AccountTypePermissions, null=True, blank=True,
                                      on_delete=models.SET_NULL)
@@ -108,7 +90,6 @@ class GeneratedImage(models.Model):
     created = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        # TODO add better string display for generated image
         return f'{self.id}'
 
     def save(self, *args, **kwargs):
@@ -121,7 +102,7 @@ class GeneratedImage(models.Model):
         while GeneratedImage.objects.filter(slug=self.slug).count() != 0:
             self.slug = get_random_string(15)
 
-        if self.expire_time is not None and self.expire_time is None:
+        if self.expire_time is not None and self.expire_date is None:
             now = datetime.now()
-            self.expire_date = now + datetime.timedelta(seconds=self.expire_time)
+            self.expire_date = now + timedelta(seconds=int(self.expire_time))
         super().save(*args, **kwargs)

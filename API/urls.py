@@ -1,14 +1,15 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from . import views
-from .views import ImageUploadView
+
+from .views import ImageUploadView, TimeLimitedThumbnailView
 
 router = DefaultRouter()
-router.register('thumbnail', ImageUploadView, basename='thumbnail')
+router.register('all', ImageUploadView, basename='standard')
+router.register('timed', TimeLimitedThumbnailView, basename='timed')
 
 
 urlpatterns = [
-    path('hello/', views.HelloWorldView.as_view(), name='hello'),
     path('', include(router.urls), name='thumbnail'),
+    path('auth/', include('djoser.urls.authtoken')),
 ]

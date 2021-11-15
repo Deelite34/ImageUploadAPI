@@ -1,26 +1,10 @@
-from API.models import StoredImage, APIUserProfile, GeneratedImage, AccountTypePermissions
-from API.serializers import StoredImageSerializer
-from django.contrib.auth.models import User
-from django.db.models import Count
-from django.urls import reverse
 from rest_framework import viewsets, status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from easy_thumbnails.files import get_thumbnailer
-
-class HelloWorldView(APIView):
-    # Need to login in /api/auth/token/login to get token
-    # token needs to be included in header to use this api
-    permission_classes = (IsAuthenticated,)
-
-    def get(self, request):
-        user_info = User.objects.select_related('apiuserprofile__account_type').get(username=request.user.username)
-        content = {'message': 'Hello, World!',
-                   'your_account_type': user_info.apiuserprofile.account_type.name,
-                   'your_username': user_info.username}
-        return Response(content)
+from API.models import StoredImage, APIUserProfile, GeneratedImage
+from API.serializers import StoredImageSerializer, TimeLimitedImageSerializer
 
 
 class ImageUploadView(viewsets.ViewSet):
@@ -29,7 +13,6 @@ class ImageUploadView(viewsets.ViewSet):
     POST request should include .jpg or .png image file.
     User will receive response containing info on source image, and thumbnails generated using source image.
 
-    TODO: add time limited thumbnail feature
     User can also send similiar request to endpoint /Thumbnail/timed/ which needs to include expire time,
     and image file.
     User will receive response containing URL and expire date
@@ -59,15 +42,14 @@ class ImageUploadView(viewsets.ViewSet):
         """
         try:
             # Normal user should include token in his header
-            user = Token.objects.select_related('').get(key=request.META.get('HTTP_AUTHORIZATION')
-                                     .split()[1]).only('user_id')
+            user = Token.objects.select_related('user__apiuserprofile').get(key=request.META.get('HTTP_AUTHORIZATION')
+                                                                            .split()[1])
         except AttributeError:
             # Admin who does not include token, but is logged in can still use API
             user = request.user
 
-        # TODO fix specific item not displaying due to incorrect owner parameter
-        queryset = StoredImage.objects.get(owner=user.APIUserProfile, id=pk)
-        serializer = StoredImageSerializer(queryset)
+        queryset = StoredImage.objects.get(owner=user.apiuserprofile.id, id=pk)
+        serializer = StoredImageSerializer(queryset, context={"request": request})
         return Response(serializer.data)
 
     def create(self, request):
@@ -88,6 +70,7 @@ class ImageUploadView(viewsets.ViewSet):
 
         # Check permissions, and create all permitted thumbnails
         if serializer.is_valid():
+
             # TODO on image upload file on filesystem should be deleted(django signals?)
             serializer.save(owner=user.apiuserprofile)
 
@@ -111,8 +94,8 @@ class ImageUploadView(viewsets.ViewSet):
             # Create standard allowed thumbnails
             for index, permission in enumerate(default_permissions):
                 if permission is True:
-                    #TODO optimize object creation with bulk_create() - check docs
-                    #TODO possibly move thumbnail creation to separate place/async function/celery
+                    # TODO optimize object creation with bulk_create() - check docs
+                    # TODO possibly move thumbnail creation to separate place/async function/celery
                     x_side = sizes[index].split('x')[0]
                     y_side = sizes[index].split('x')[1]
                     options = {'size': (x_side, y_side), 'upscale': True, 'crop': True}
@@ -143,6 +126,72 @@ class ImageUploadView(viewsets.ViewSet):
             created_thumbnails_data = {'thumbnails': {}}
             for index, item in enumerate(created_thumbnails):
                 created_thumbnails_data['thumbnails'][item.type] = request.get_host() + '/i/' + item.slug + '/'
+
+            # Dictionary containing created thumbnails
+            updated_serializer_data = serializer.data
+            updated_serializer_data.update(created_thumbnails_data)
+
+            return Response(updated_serializer_data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TimeLimitedThumbnailView(viewsets.ViewSet):
+    serializer_class = TimeLimitedImageSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def create(self, request):
+        """
+
+        """
+        try:
+            # Normal user should include token in his header
+            user = Token.objects.get(key=request.META.get('HTTP_AUTHORIZATION')
+                                     .split()[1]).only('user_id')
+        except AttributeError:
+            # Admin who does not include token, but is logged in can still use API
+            user = request.user
+
+        request_data_cleared = request.data
+        del request_data_cleared['type']
+        del request_data_cleared['expire_time']
+        serializer = TimeLimitedImageSerializer(data=request_data_cleared, context={"request": request})
+
+        if serializer.is_valid():
+            queryset_permissions = APIUserProfile.objects.select_related('account_type') \
+                .prefetch_related('account_type__custom_size').get(user=user)
+
+            img_expire_time = request.POST.get('expire_time', '')
+            img_type = request.POST.get('type', '')
+
+            # Check permissions for creating time limited thumbnail and specific type of thumbnail
+            custom_time_permission = queryset_permissions.account_type.create_time_limited_link_perm
+            if img_type == '200':
+                custom_size_permission = queryset_permissions.account_type.create_200px_thumbnail_perm
+            elif img_type == '400':
+                custom_size_permission = queryset_permissions.account_type.create_400px_thumbnail_perm
+            else:
+                related_custom_sizes = queryset_permissions.account_type.custom_size
+                custom_size_permission = True
+                if img_type not in related_custom_sizes:
+                    custom_size_permission = False
+            if custom_time_permission is False or custom_size_permission is False:
+                error_msg = "Your profile type is not allowed to create time limited or this type of thumbnail"
+                return Response(error_msg, status=status.HTTP_403_FORBIDDEN)
+
+            serializer.save(owner=user.apiuserprofile)
+
+            source_image = StoredImage.objects.filter(owner=user.apiuserprofile).latest('id')
+
+            options = {'size': (img_type, img_type), 'upscale': True, 'crop': True}
+            img = get_thumbnailer(source_image.file).get_thumbnail(options)
+
+            thumbnail = GeneratedImage.objects.create(source_image=source_image,
+                                                      modified_image=img.url,
+                                                      type=str(img_type),
+                                                      expire_time=img_expire_time)
+
+            created_thumbnails_data = {'thumbnails': {}}
+            created_thumbnails_data['thumbnails'][str(img_type)] = request.get_host() + '/i/' + thumbnail.slug + '/'
 
             # Dictionary containing created thumbnails
             updated_serializer_data = serializer.data

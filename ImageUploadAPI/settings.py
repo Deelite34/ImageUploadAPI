@@ -8,18 +8,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = 'static/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
-MEDIA_URL = '/uploads/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'staticfiles'),
 )
 
-
 load_dotenv()
 DB_NAME = environ['DB_NAME']
 DB_USER = environ['POSTGRES_USER']
 DB_PASS = environ['POSTGRES_PASSWORD']
+DB_HOST = environ['POSTGRES_HOST']
+DB_PORT = environ['POSTGRES_PORT']
 
 INTERNAL_IPS = [
     '127.0.0.1',
@@ -36,6 +37,7 @@ if DEBUG:
 
 ALLOWED_HOSTS = []
 
+# TODO default thumbnail aliases
 THUMBNAIL_ALIASES = {
     '': {
         'default_200': {'size': (200, 200), 'crop': True},
@@ -59,8 +61,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'easy_thumbnails',  # Thumbnail generation
-    'debug_toolbar',    # Development helper
-    'djoser',           # Allows to send credentials and receive token used for api requests
+    'debug_toolbar',    # Development and optimisation helper
+    'djoser',           # Allows to send credentials and receive token required for api requests
 
 ]
 
@@ -73,7 +75,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
 ]
 
 ROOT_URLCONF = 'ImageUploadAPI.urls'
@@ -96,8 +97,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ImageUploadAPI.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -108,9 +107,9 @@ DATABASES = {
 
         'PASSWORD': DB_PASS,
 
-        'HOST': 'db',
+        'HOST': DB_HOST,
 
-        'PORT': 5432,
+        'PORT': DB_PORT,
     }
 }
 
@@ -145,12 +144,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.2/howto/static-files/
-
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

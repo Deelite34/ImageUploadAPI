@@ -6,6 +6,8 @@ from easy_thumbnails.files import get_thumbnailer
 from API.models import StoredImage, APIUserProfile, GeneratedImage
 from API.serializers import StoredImageSerializer, TimeLimitedImageSerializer
 
+from API.utils import set_generated_image_model_slug_and_expire_date
+
 
 class ImageUploadView(viewsets.ViewSet):
     """
@@ -38,7 +40,7 @@ class ImageUploadView(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         """
-        Lists all images and related thumbnails for specific user
+        Lists specific uploaded image and related thumbnails
         """
         try:
             # Normal user should include token in his header
@@ -54,9 +56,8 @@ class ImageUploadView(viewsets.ViewSet):
 
     def create(self, request):
         """
-        Creates a link of the user making the request and updates users url_count value.
-        Requires request to cointain 'url_input': 'value' field,
-        where value is the URL to be shortened.
+        Checks authorization of user, then creates thumbnails for all available for user profile permissions, except
+        timed thumbnails
         """
         try:
             # Normal user should include token in his header
@@ -70,8 +71,7 @@ class ImageUploadView(viewsets.ViewSet):
 
         # Check permissions, and create all permitted thumbnails
         if serializer.is_valid():
-
-            # TODO on image upload file on filesystem should be deleted(django signals?)
+            # TODO on image upload file on filesystem should be deleted(django signals? shell script?)
             serializer.save(owner=user.apiuserprofile)
 
             # Get user permissions, custom thumbnail sizes and original image object
@@ -80,7 +80,6 @@ class ImageUploadView(viewsets.ViewSet):
             source_image = StoredImage.objects.filter(owner=user.apiuserprofile).latest('id')
 
             # Create all thumbnail images, assign them to specific URLs
-            created_thumbnails = []
             # TODO move size strings to constant variables to allow easier modification+possibly
             # TODO thumbnails_aliases from settings.py
             sizes = ['200x200',
@@ -92,22 +91,21 @@ class ImageUploadView(viewsets.ViewSet):
                                    queryset_permissions.account_type.create_original_img_link_perm]
 
             # Create standard allowed thumbnails
+            thumbnails_to_be_bulk_created = []
             for index, permission in enumerate(default_permissions):
                 if permission is True:
-                    # TODO optimize object creation with bulk_create() - check docs
                     # TODO possibly move thumbnail creation to separate place/async function/celery
                     x_side = sizes[index].split('x')[0]
                     y_side = sizes[index].split('x')[1]
                     options = {'size': (x_side, y_side), 'upscale': True, 'crop': True}
                     img = get_thumbnailer(source_image.file).get_thumbnail(options)
 
-                    thumbnail = GeneratedImage.objects.create(source_image=source_image,
-                                                              modified_image=img.url,
-                                                              type=sizes[index])
-                    created_thumbnails.append(thumbnail)
+                    thumbnail = GeneratedImage(source_image=source_image,
+                                               modified_image=img.url,
+                                               type=sizes[index])
+                    thumbnails_to_be_bulk_created.append(thumbnail)
 
-            # Iterate over custom sizes assigned to account type, and create
-            # custom size thumbnails
+            # Iterate over custom sizes assigned to account type, and create custom sized thumbnails
             related_custom_sizes = queryset_permissions.account_type.custom_size
             if default_permissions[2] is True and related_custom_sizes.count() > 0:
                 for index, item in enumerate(related_custom_sizes.all()):
@@ -116,20 +114,22 @@ class ImageUploadView(viewsets.ViewSet):
                     img = get_thumbnailer(source_image.file).get_thumbnail(options)
 
                     side = related_custom_sizes.all()[index].size
-                    img_type = f'{side}x{side}'
 
-                    thumbnail = GeneratedImage.objects.create(source_image=source_image,
-                                                              modified_image=img.url,
-                                                              type=img_type)
-                    created_thumbnails.append(thumbnail)
+                    thumbnail = GeneratedImage(source_image=source_image,
+                                               modified_image=img.url,
+                                               type=sizes[index])
+                    thumbnails_to_be_bulk_created.append(thumbnail)
 
-            created_thumbnails_data = {'thumbnails': {}}
-            for index, item in enumerate(created_thumbnails):
-                created_thumbnails_data['thumbnails'][item.type] = request.get_host() + '/i/' + item.slug + '/'
+            response_thumbnails_data = {'thumbnails': {}}
+            for index, item in enumerate(thumbnails_to_be_bulk_created):
+                set_generated_image_model_slug_and_expire_date(item)
+                response_thumbnails_data['thumbnails'][item.type] = request.get_host() + '/i/' + item.slug + '/'
+
+            GeneratedImage.objects.bulk_create(thumbnails_to_be_bulk_created)
 
             # Dictionary containing created thumbnails
             updated_serializer_data = serializer.data
-            updated_serializer_data.update(created_thumbnails_data)
+            updated_serializer_data.update(response_thumbnails_data)
 
             return Response(updated_serializer_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -141,7 +141,7 @@ class TimeLimitedThumbnailView(viewsets.ViewSet):
 
     def create(self, request):
         """
-
+        Checks authorization of user, then creates a time limited thumbnail if user permission allows it
         """
         try:
             # Normal user should include token in his header
@@ -190,12 +190,12 @@ class TimeLimitedThumbnailView(viewsets.ViewSet):
                                                       type=str(img_type),
                                                       expire_time=img_expire_time)
 
-            created_thumbnails_data = {'thumbnails': {}}
-            created_thumbnails_data['thumbnails'][str(img_type)] = request.get_host() + '/i/' + thumbnail.slug + '/'
+            response_thumbnails_data = {'thumbnails': {}}
+            response_thumbnails_data['thumbnails'][str(img_type)] = request.get_host() + '/i/' + thumbnail.slug + '/'
 
             # Dictionary containing created thumbnails
             updated_serializer_data = serializer.data
-            updated_serializer_data.update(created_thumbnails_data)
+            updated_serializer_data.update(response_thumbnails_data)
 
             return Response(updated_serializer_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -60,7 +60,6 @@ def test_image_webpage():
     """
     Create thumbnail, test existence of corresponding image page where img should be visible
     """
-
     initial_data = db_data_preparation()
     endpoint_all = '/api/all/'
     client = APIClient()

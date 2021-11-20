@@ -31,8 +31,11 @@ class StoredImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StoredImage
+        # TODO file field should not display file path, but either display different info, or not be displayed
+        #      While accepting data if post request contains 'file' key and value
         fields = ['id', 'file', 'thumbnails']
         read_only_fields = ['id', 'thumbnails']
+
 
 
 class TimeLimitedImageSerializer(serializers.ModelSerializer):

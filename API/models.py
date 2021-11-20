@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 
-from .utils import user_directory_path
+from .utils import user_directory_path, set_generated_image_model_slug_and_expire_date
 from .custom_validators import MinValueValidatorIgnoreNull, MaxValueValidatorIgnoreNull, \
                                validate_image_type
 
@@ -97,12 +97,5 @@ class GeneratedImage(models.Model):
         In addition to standard save procedure, generate unique slug
         used for URL and set expire_date if expire_time is set
         """
-        if not self.slug:
-            self.slug = get_random_string(15)
-        while GeneratedImage.objects.filter(slug=self.slug).count() != 0:
-            self.slug = get_random_string(15)
-
-        if self.expire_time is not None and self.expire_date is None:
-            now = datetime.now()
-            self.expire_date = now + timedelta(seconds=int(self.expire_time))
+        set_generated_image_model_slug_and_expire_date(self)
         super().save(*args, **kwargs)

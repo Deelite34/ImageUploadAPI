@@ -1,18 +1,12 @@
-import io
-import json
 import os
-
 import pytest
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile, StoredImage, GeneratedImage
 from ImageUploadAPI.settings import TEST_MEDIA_ROOT
 from django.contrib.auth.models import User
-from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
-from PIL import Image
-
 
 TEST_USER_LOGIN = 'test_user'
 TEST_USER_PASS = 'qwerty12345'

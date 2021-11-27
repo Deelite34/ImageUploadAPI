@@ -1,12 +1,14 @@
-from rest_framework import viewsets, status
-from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from easy_thumbnails.files import get_thumbnailer
 from API.models import StoredImage, APIUserProfile, GeneratedImage
 from API.serializers import StoredImageSerializer, TimeLimitedImageSerializer
-
 from API.utils import set_generated_image_model_slug_and_expire_date
+from django.http import Http404
+from easy_thumbnails.files import get_thumbnailer
+from rest_framework import viewsets, status, permissions
+from rest_framework.authtoken.models import Token
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
 
 
 class ImageUploadView(viewsets.ViewSet):
@@ -20,7 +22,7 @@ class ImageUploadView(viewsets.ViewSet):
     User will receive response containing URL and expire date
     """
     serializer_class = StoredImageSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated,)#
 
     def list(self, request):
         """
@@ -44,15 +46,20 @@ class ImageUploadView(viewsets.ViewSet):
         """
         try:
             # Normal user should include token in his header
-            user = Token.objects.select_related('user__apiuserprofile').get(key=request.META.get('HTTP_AUTHORIZATION')
-                                                                            .split()[1])
+            token = Token.objects.select_related('user__apiuserprofile').get(key=request.META.get('HTTP_AUTHORIZATION')
+                                                                             .split()[1])
         except AttributeError:
             # Admin who does not include token, but is logged in can still use API
-            user = request.user
+            token = request.user
 
-        queryset = StoredImage.objects.get(owner=user.apiuserprofile.id, id=pk)
+        try:
+            queryset = StoredImage.objects.get(owner=token.user.apiuserprofile.id, id=pk)
+        except StoredImage.DoesNotExist:
+            data = {"detail": "Item not found"}
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
         serializer = StoredImageSerializer(queryset, context={"request": request})
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request):
         """
@@ -92,6 +99,8 @@ class ImageUploadView(viewsets.ViewSet):
 
             # Create standard allowed thumbnails
             thumbnails_to_be_bulk_created = []
+            num_of_created_thumbnails = 0  # tracks what is the index of currently created custom size
+            # for example here [0:3] will be defalt sizes, [3:] will be custom sizes
             for index, permission in enumerate(default_permissions):
                 if permission is True:
                     # TODO possibly move thumbnail creation to separate place/async function/celery
@@ -104,6 +113,7 @@ class ImageUploadView(viewsets.ViewSet):
                                                modified_image=img.url,
                                                type=sizes[index])
                     thumbnails_to_be_bulk_created.append(thumbnail)
+                    num_of_created_thumbnails += 1
 
             # Iterate over custom sizes assigned to account type, and create custom sized thumbnails
             related_custom_sizes = queryset_permissions.account_type.custom_size
@@ -113,12 +123,14 @@ class ImageUploadView(viewsets.ViewSet):
                     options = {'size': (side, side), 'upscale': True, 'crop': True}
                     img = get_thumbnailer(source_image.file).get_thumbnail(options)
 
-                    side = related_custom_sizes.all()[index].size
+                    side = str(related_custom_sizes.all()[index].size)
+                    side_full = f'{side}x{side}'
 
                     thumbnail = GeneratedImage(source_image=source_image,
                                                modified_image=img.url,
-                                               type=sizes[index])
+                                               type=side_full)
                     thumbnails_to_be_bulk_created.append(thumbnail)
+                    num_of_created_thumbnails += 1
 
             response_thumbnails_data = {'thumbnails': {}}
             for index, item in enumerate(thumbnails_to_be_bulk_created):
@@ -126,11 +138,10 @@ class ImageUploadView(viewsets.ViewSet):
                 response_thumbnails_data['thumbnails'][item.type] = request.get_host() + '/i/' + item.slug + '/'
 
             GeneratedImage.objects.bulk_create(thumbnails_to_be_bulk_created)
-
             # Dictionary containing created thumbnails
+
             updated_serializer_data = serializer.data
             updated_serializer_data.update(response_thumbnails_data)
-
             return Response(updated_serializer_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

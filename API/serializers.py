@@ -37,7 +37,6 @@ class StoredImageSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'thumbnails']
 
 
-
 class TimeLimitedImageSerializer(serializers.ModelSerializer):
     """
     When user sends expire_time and type fields with other data to serializer, those fields are used only in

@@ -38,15 +38,6 @@ if DEBUG:
 
 ALLOWED_HOSTS = []
 
-# TODO default thumbnail aliases
-THUMBNAIL_ALIASES = {
-    '': {
-        'default_200': {'size': (200, 200), 'crop': True},
-        'default_400': {'size': (400, 400), 'crop': True},
-
-    },
-}
-# Application definition
 
 INSTALLED_APPS = [
     'API',

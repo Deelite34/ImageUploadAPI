@@ -75,7 +75,6 @@ class ImageUploadView(viewsets.ViewSet):
 
         # Check permissions, and create all permitted thumbnails
         if serializer.is_valid():
-            # TODO on image upload file on filesystem should be deleted(django signals? shell script?)
             serializer.save(owner=user.apiuserprofile)
 
             # Get user permissions, custom thumbnail sizes and original image object

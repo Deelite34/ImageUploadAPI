@@ -17,6 +17,7 @@ pytestmark = pytest.mark.django_db  # all test functions are permitted to access
 
 # todo implement uathorization with jwt token simple jwt
 # todo add documentation drf-spectacular
+# todo serving images(whitenoise? nginx/apache/similiar proper configuration?)
 
 
 # Decorator will cause test user directories and images to be created in separate, easier to clean up directory
@@ -84,9 +85,6 @@ def test_all_endpoint_create():
     assert response.status_code == 201
     assert len(json.loads(response.content)) == 3
     assert len(json_dict['thumbnails'].keys()) == 5
-
-    # possible TODO file cleanup(create cleanup script?): rename test_image to some unique, long string
-    # and create function removing all images starting with that phrase within /media/ directory
 
 
 @override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)

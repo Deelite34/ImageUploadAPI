@@ -27,7 +27,7 @@ class MaxValueValidatorIgnoreNull(MaxValueValidator):
 
 def validate_image_type(value):
     """
-     Check if models.ImageField object is an allowed-type image
+    Check if models.ImageField object is an allowed-type image
     :param value: models.ImageField object to identify
     """
     extensions = ['jpg', 'png']

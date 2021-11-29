@@ -1,6 +1,4 @@
-from django.contrib.auth.models import User
 from rest_framework import serializers
-
 from API.models import StoredImage, APIUserProfile, AccountTypePermissions, GeneratedImage
 
 
@@ -14,10 +12,10 @@ class GeneratedImageSerializer(serializers.ModelSerializer):
         model = GeneratedImage
         fields = ['id', 'type', 'image_url', 'expire_date', 'created']
 
-    def get_image_url(self, GeneratedImage):
+    def get_image_url(self, generatedimage):
         """ Gets urls for generated images"""
         request = self.context.get('request')
-        slug = GeneratedImage.slug
+        slug = generatedimage.slug
         image_url = request.get_host() + '/i/' + slug + '/'
         return request.build_absolute_uri(image_url)
 

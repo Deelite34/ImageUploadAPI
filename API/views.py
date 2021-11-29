@@ -1,14 +1,11 @@
 from API.models import StoredImage, APIUserProfile, GeneratedImage
 from API.serializers import StoredImageSerializer, TimeLimitedImageSerializer
 from API.utils import set_generated_image_model_slug_and_expire_date
-from django.http import Http404
 from easy_thumbnails.files import get_thumbnailer
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status
 from rest_framework.authtoken.models import Token
-from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
 
 
 class ImageUploadView(viewsets.ViewSet):
@@ -22,7 +19,7 @@ class ImageUploadView(viewsets.ViewSet):
     User will receive response containing URL and expire date
     """
     serializer_class = StoredImageSerializer
-    permission_classes = (IsAuthenticated,)#
+    permission_classes = (IsAuthenticated,)
 
     def list(self, request):
         """
@@ -99,8 +96,6 @@ class ImageUploadView(viewsets.ViewSet):
 
             # Create standard allowed thumbnails
             thumbnails_to_be_bulk_created = []
-            num_of_created_thumbnails = 0  # tracks what is the index of currently created custom size
-            # for example here [0:3] will be defalt sizes, [3:] will be custom sizes
             for index, permission in enumerate(default_permissions):
                 if permission is True:
                     # TODO possibly move thumbnail creation to separate place/async function/celery
@@ -113,7 +108,6 @@ class ImageUploadView(viewsets.ViewSet):
                                                modified_image=img.url,
                                                type=sizes[index])
                     thumbnails_to_be_bulk_created.append(thumbnail)
-                    num_of_created_thumbnails += 1
 
             # Iterate over custom sizes assigned to account type, and create custom sized thumbnails
             related_custom_sizes = queryset_permissions.account_type.custom_size
@@ -130,7 +124,6 @@ class ImageUploadView(viewsets.ViewSet):
                                                modified_image=img.url,
                                                type=side_full)
                     thumbnails_to_be_bulk_created.append(thumbnail)
-                    num_of_created_thumbnails += 1
 
             response_thumbnails_data = {'thumbnails': {}}
             for index, item in enumerate(thumbnails_to_be_bulk_created):

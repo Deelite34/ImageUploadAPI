@@ -1,12 +1,7 @@
 import os
-from datetime import datetime, timedelta
-
 from django.core.validators import MaxValueValidator
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils import timezone
-from django.utils.crypto import get_random_string
-
 from .utils import user_directory_path, set_generated_image_model_slug_and_expire_date
 from .custom_validators import MinValueValidatorIgnoreNull, MaxValueValidatorIgnoreNull, \
                                validate_image_type

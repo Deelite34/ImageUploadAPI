@@ -1,86 +1,76 @@
 import os
-
+import pytest
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-import pytest
-# Create your tests here.
+from django.test import override_settings
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile,\
                        StoredImage, GeneratedImage
+from ImageUploadAPI.settings import BASE_DIR, MEDIA_ROOT, TEST_API_DIR
+from API.test.constants_tests import TEST_MEDIA_ROOT, TEST_MEDIA_URL, TEST_USER_PASS, TEST_USER_LOGIN
 
-from ImageUploadAPI.settings import BASE_DIR, MEDIA_ROOT, TEST_MEDIA_ROOT
+
+pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(scope="session", autouse=True)
 def directory_setup():
     """Move to /API/test directory  before tests start, to ensure access to test image file"""
-    os.chdir(TEST_MEDIA_ROOT)
+    os.chdir(TEST_API_DIR)
 
 
-@pytest.mark.django_db
-class TestCustomThumbnailSizeModel:
-    def test_to_string(self):
-        size = 1000
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+def test_customthumbnailssize_to_string():
+    size = 1000
 
-        CustomThumbnailSize.objects.create(size=size)
-        queryset = CustomThumbnailSize.objects.get(size=size)
+    CustomThumbnailSize.objects.create(size=size)
+    queryset = CustomThumbnailSize.objects.get(size=size)
 
-        assert queryset.__str__() == f'{queryset.size}x{queryset.size}'
-
-
-@pytest.mark.django_db
-class TestAccountTypePermissionsModel:
-    def test_to_string(self):
-        name = "test name"
-
-        queryset = AccountTypePermissions.objects.create(name=name)
-
-        assert queryset.__str__() == f'{name}'
+    assert queryset.__str__() == f'{queryset.size}x{queryset.size}'
 
 
-@pytest.mark.django_db
-class TestAPIUserProfileModel:
-    def test_to_string(self):
-        test_user = User.objects.create(username='test_user', password='QFSV#^@#HE')
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+def test_accounttypepermisions_to_string():
+    name = "test name"
 
-        APIUserProfile.objects.create(user=test_user)
-        queryset = APIUserProfile.objects.select_related('user').get(user=test_user)
+    queryset = AccountTypePermissions.objects.create(name=name)
 
-        assert queryset.__str__() == f'{queryset.user.username}'
+    assert queryset.__str__() == f'{name}'
 
 
-@pytest.mark.django_db
-class TestStoredImageModel:
-    def test_to_string(self):
-        test_user = User.objects.create(username='test_user', password='QFSV#^@#HE')
-        api_user_profile_object = APIUserProfile.objects.create(user=test_user)
-        mock_image_path = "test_image.png"
-        mock_image = SimpleUploadedFile(name='test_image.png', content=open(mock_image_path, 'rb').read(),
-                                        content_type='image/jpeg')
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+def test_apiuserprofile_to_string():
+    test_user = User.objects.create(username=TEST_USER_LOGIN, password=TEST_USER_PASS)
 
-        StoredImage.objects.create(owner=api_user_profile_object, file=mock_image)
-        image_object = StoredImage.objects.get(owner=api_user_profile_object)
+    APIUserProfile.objects.create(user=test_user)
+    queryset = APIUserProfile.objects.select_related('user').get(user=test_user)
 
-        # file cleanup
-        os.remove(image_object.file.path)
-
-        assert image_object.__str__() == f"{os.path.basename('test_image.png')}"
+    assert queryset.__str__() == f'{queryset.user.username}'
 
 
-@pytest.mark.django_db
-class TestGeneratedImageModel:
-    def test_to_string(self):
-        test_user = User.objects.create(username='test_user', password='QFSV#^@#HE')
-        APIUserProfile.objects.create(user=test_user)
-        api_user = APIUserProfile.objects.select_related('user').get(user=test_user)
-        mock_image_path = "test_image.png"
-        mock_image = SimpleUploadedFile(name=mock_image_path, content=open(mock_image_path, 'rb').read(),
-                                        content_type='image/jpeg')
-        source_image = StoredImage.objects.create(owner=api_user, file=mock_image)
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+def test_storedimage_to_string():
+    test_user = User.objects.create(username=TEST_USER_LOGIN, password=TEST_USER_PASS)
+    api_user_profile_object = APIUserProfile.objects.create(user=test_user)
+    mock_image_path = "test_image.png"
+    mock_image = SimpleUploadedFile(name='test_image.png', content=open(mock_image_path, 'rb').read(),
+                                    content_type='image/jpeg')
 
-        generated_image = GeneratedImage.objects.create(source_image=source_image, type=200)
+    StoredImage.objects.create(owner=api_user_profile_object, file=mock_image)
+    image_object = StoredImage.objects.get(owner=api_user_profile_object)
 
-        assert generated_image.__str__() == f"{generated_image.id}"
+    assert image_object.__str__() == f"{os.path.basename('test_image.png')}"
 
-        # file cleanup
-        image_object = StoredImage.objects.get(owner=api_user)
-        os.remove(image_object.file.path)
+
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+def test_generatedimage_to_string():
+    test_user = User.objects.create(username=TEST_USER_LOGIN, password=TEST_USER_PASS)
+    APIUserProfile.objects.create(user=test_user)
+    api_user = APIUserProfile.objects.select_related('user').get(user=test_user)
+    mock_image_path = "test_image.png"
+    mock_image = SimpleUploadedFile(name=mock_image_path, content=open(mock_image_path, 'rb').read(),
+                                    content_type='image/jpeg')
+    source_image = StoredImage.objects.create(owner=api_user, file=mock_image)
+
+    generated_image = GeneratedImage.objects.create(source_image=source_image, type=200)
+
+    assert generated_image.__str__() == f"{generated_image.id}"

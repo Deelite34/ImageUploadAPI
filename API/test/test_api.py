@@ -1,80 +1,45 @@
 import json
 import os
+import shutil
+
 import pytest
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from rest_framework.authtoken.models import Token
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
-from ImageUploadAPI.settings import TEST_MEDIA_ROOT
+from ImageUploadAPI.settings import TEST_API_DIR, TEST_MEDIA_DIR
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile, StoredImage, GeneratedImage
+from API.test.constants_tests import TEST_USER_LOGIN, TEST_USER_PASS, ENDPOINT_ALL, \
+    CONTENT_TYPE_DEFAULT, MOCK_IMAGE_PATH, MOCK_WRONG_FILE_TYPE_PATH, TEST_MEDIA_ROOT, TEST_MEDIA_URL, \
+    CONTENT_TYPE_PNG, MOCK_ALT_IMAGE_PATH, TEST_PROFILE_TYPE_NAME
+from API.test.utils import db_data_preparation, create_test_client
 
-# Constants for DRY principle
-TEST_USER_LOGIN = 'test_user'
-TEST_USER_PASS = 'qwerty12345'
-TEST_PROFILE_TYPE_NAME = "test_profile_type"
-TEST_IMAGE_WIDTH = 840
-TEST_IMAGE_HEIGHT = 680
-ENDPOINT_ALL = '/api/all/'
-MOCK_IMAGE_PATH = "test_image.png"
-MOCK_ALT_IMAGE_PATH = "test_image_b.png"
-CONTENT_TYPE_PNG = 'image/png'
 
-pytestmark = pytest.mark.django_db  # all test functions are permited to access test db
+pytestmark = pytest.mark.django_db  # all test functions are permitted to access test db
 
 # todo implement uathorization with jwt token simple jwt
 # todo add documentation drf-spectacular
 
 
 @pytest.fixture(scope="session", autouse=True)
-def directory_setup():
+def setup_and_teardown():
     """Move to /API/test directory  before tests start, to ensure access to test image file"""
-    os.chdir(TEST_MEDIA_ROOT)
+    # Will be executed before the first test
+    os.chdir(TEST_API_DIR)
+    yield
+    # Will be executed after the last test
+    print('Cleaning up created test thumbnails..')
+    folders = os.listdir(TEST_MEDIA_DIR)
+    for folder in folders:
+        directory = TEST_MEDIA_DIR + '/' + folder
+        print("Removing: " + directory)
+        shutil.rmtree(directory)
 
 
-def db_data_preparation():
-    """
-    Create initial db tables; custom thumbnail sizes, profile type, user, assign profile type to user,
-    :return: data - dict containing references to created data
-    """
-    test_user = User.objects.create(username=TEST_USER_LOGIN, password=TEST_USER_PASS)
-    test_account_type = AccountTypePermissions.objects.create(name=TEST_PROFILE_TYPE_NAME,
-                                                              create_200px_thumbnail_perm=True,
-                                                              create_400px_thumbnail_perm=True,
-                                                              create_original_img_link_perm=True,
-                                                              create_custom_sized_thumbnail_perm=True,
-                                                              create_time_limited_link_perm=True)
-    test_custom_thumbnail_size_1 = CustomThumbnailSize.objects.create(size=500)
-    test_custom_thumbnail_size_2 = CustomThumbnailSize.objects.create(size=1000)
-    test_account_type.custom_size.add(test_custom_thumbnail_size_1,
-                                      test_custom_thumbnail_size_2)
-    test_api_user_profile = APIUserProfile.objects.create(user=test_user, account_type=test_account_type)
-
-    data = {
-        'test_user': test_user,
-        'test_account_type': test_account_type,
-        'test_custom_thumbnail_size_1': test_custom_thumbnail_size_1,
-        'test_custom_thumbnail_size_2': test_custom_thumbnail_size_2,
-        'test_api_user_profile': test_api_user_profile,
-    }
-    return data
-
-
-def create_test_client(initial_data, authorize=True):
-    """
-    Creates APIClient, and authorizes it with a token
-    :return: client - APIClient instance authorized with token
-    """
-    client = APIClient()
-    user = initial_data['test_user']
-    if authorize:
-        token = Token.objects.create(user=user)
-        client.force_authenticate(user=user, token=token)
-        # api views check for authorization in the request header, therefore apiclient needs token in his header
-        client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
-    return client
-
-
+# Decorator will cause test user directories and images to be created in separate, easier to clean up directory
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_all_endpoint_list():
     """
     Create test data, then list all items then test response status and content
@@ -100,6 +65,7 @@ def test_all_endpoint_list():
     assert len(json_dict[1]['thumbnails'][0].keys()) == 5
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_all_endpoint_retrieve():
     """
     Create test data, then retrieve created item then test response status and content
@@ -121,6 +87,7 @@ def test_all_endpoint_retrieve():
     assert len(get_json_dict[0]['thumbnails'][0].keys()) == 5
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_all_endpoint_create():
     """
     Post image to /api/all/ and test response status, response structure and content
@@ -141,6 +108,7 @@ def test_all_endpoint_create():
     # and create function removing all images starting with that phrase within /media/ directory
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_timed_endpoint_create():
     """
     Post image to /api/timed/ and test response status, response structure and content
@@ -163,6 +131,7 @@ def test_timed_endpoint_create():
     assert len(json_dict['thumbnails'].keys()) == 1
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_no_token_all_list():
     """
     Try to get (list) images without providing token
@@ -181,6 +150,7 @@ def test_no_token_all_list():
     assert len(json_dict.keys()) == 1
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_no_token_all_retrieve():
     """
     Try to get specific thumbnail without providing access token
@@ -201,6 +171,7 @@ def test_no_token_all_retrieve():
     assert len(get_json_dict.keys()) == 1
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_not_supported_request_type_response():
     """
     Test response when put or delete requests are made
@@ -219,9 +190,10 @@ def test_not_supported_request_type_response():
     assert len(json_dict_2.keys()) == 1
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_not_owned_item_retrieve():
     """
-
+    Test retrieving thumbnail that user did not create
     """
     initial_data = db_data_preparation()
     client_1 = create_test_client(initial_data, authorize=True)
@@ -230,7 +202,7 @@ def test_not_owned_item_retrieve():
     client_2 = APIClient()
     token = Token.objects.create(user=test_user_2)
     client_2.force_authenticate(user=test_user_2, token=token)
-    client_2.credentials(HTTP_AUTHORIZATION='Token ' + token.key)  # view checks for credentials in header
+    client_2.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     mock_image = SimpleUploadedFile(name=MOCK_IMAGE_PATH, content=open(MOCK_IMAGE_PATH, 'rb').read(),
                                     content_type=CONTENT_TYPE_PNG)
 
@@ -246,11 +218,35 @@ def test_not_owned_item_retrieve():
     assert len(get_json_dict) == 1
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_malformed_request_response():
-    # TODO test sending malformed requests
-    pass
+    """
+    Send request containing rubbish data and without included file
+    """
+    initial_data = db_data_preparation()
+    client = create_test_client(initial_data, authorize=True)
+
+    response = client.post(ENDPOINT_ALL, {'qwert': 'yuiop'}, format='multipart')
+    json_dict = json.loads(response.content.decode('utf8'))
+
+    assert response.status_code == 400
+    assert len(json_dict.keys()) == 1
+    assert json_dict['file'][0].startswith('No file was submitted')
 
 
+@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
 def test_send_wrong_file_format():
-    # TODO test sending not a png or jpg file
-    pass
+    """
+    test sending not an image to api
+    """
+    initial_data = db_data_preparation()
+    client = create_test_client(initial_data, authorize=True)
+    mock_image = SimpleUploadedFile(name=MOCK_WRONG_FILE_TYPE_PATH, content=open(MOCK_IMAGE_PATH, 'rb').read(),
+                                    content_type=CONTENT_TYPE_DEFAULT)
+
+    response = client.post(ENDPOINT_ALL, {'file': mock_image}, format='multipart')
+    json_dict = json.loads(response.content.decode('utf8'))
+
+    assert response.status_code == 400
+    assert len(json_dict.keys()) == 1
+    assert json_dict['file'][0].startswith('File extension ')  # file extension x is not allowed(...)

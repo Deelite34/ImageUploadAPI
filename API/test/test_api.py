@@ -1,7 +1,4 @@
 import json
-import os
-import shutil
-
 import pytest
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -9,7 +6,6 @@ from django.test import override_settings
 from rest_framework.authtoken.models import Token
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
-from ImageUploadAPI.settings import TEST_API_DIR, TEST_MEDIA_DIR
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile, StoredImage, GeneratedImage
 from API.test.constants_tests import TEST_USER_LOGIN, TEST_USER_PASS, ENDPOINT_ALL, \
     CONTENT_TYPE_DEFAULT, MOCK_IMAGE_PATH, MOCK_WRONG_FILE_TYPE_PATH, TEST_MEDIA_ROOT, TEST_MEDIA_URL, \
@@ -21,21 +17,6 @@ pytestmark = pytest.mark.django_db  # all test functions are permitted to access
 
 # todo implement uathorization with jwt token simple jwt
 # todo add documentation drf-spectacular
-
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_and_teardown():
-    """Move to /API/test directory  before tests start, to ensure access to test image file"""
-    # Will be executed before the first test
-    os.chdir(TEST_API_DIR)
-    yield
-    # Will be executed after the last test
-    print('Cleaning up created test thumbnails..')
-    folders = os.listdir(TEST_MEDIA_DIR)
-    for folder in folders:
-        directory = TEST_MEDIA_DIR + '/' + folder
-        print("Removing: " + directory)
-        shutil.rmtree(directory)
 
 
 # Decorator will cause test user directories and images to be created in separate, easier to clean up directory

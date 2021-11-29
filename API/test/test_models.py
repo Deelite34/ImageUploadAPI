@@ -5,17 +5,10 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile,\
                        StoredImage, GeneratedImage
-from ImageUploadAPI.settings import BASE_DIR, MEDIA_ROOT, TEST_API_DIR
 from API.test.constants_tests import TEST_MEDIA_ROOT, TEST_MEDIA_URL, TEST_USER_PASS, TEST_USER_LOGIN
 
 
 pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture(scope="session", autouse=True)
-def directory_setup():
-    """Move to /API/test directory  before tests start, to ensure access to test image file"""
-    os.chdir(TEST_API_DIR)
 
 
 @override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)

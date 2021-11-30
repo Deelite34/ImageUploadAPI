@@ -3,9 +3,11 @@ from API.serializers import StoredImageSerializer, TimeLimitedImageSerializer
 from API.utils import set_generated_image_model_slug_and_expire_date
 from easy_thumbnails.files import get_thumbnailer
 from rest_framework import viewsets, status
+from rest_framework.authtoken.admin import User
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.backends import TokenBackend
 
 
 class ImageUploadView(viewsets.ViewSet):
@@ -26,14 +28,20 @@ class ImageUploadView(viewsets.ViewSet):
         Lists all images and related thumbnails for specific user
         """
         try:
-            # Normal user should include token in his header
-            user = Token.objects.get(key=request.META.get('HTTP_AUTHORIZATION')
-                                     .split()[1]).only('user_id').user_id
+            # Normal user should include token or jwt token in his header
+            request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
+            if request_token[0] == "Bearer":
+                data = TokenBackend(algorithm='HS256').decode(request_token[1], verify=False)
+                token_user_id = data['user_id']
+                token_user = User.objects.get(id=token_user_id).user_id
+            elif request_token[0] == "Token":
+                token_user_id = Token.objects.get(key=request_token[1]).only('user_id').user_id
+                token_user = User.objects.get(id=token_user_id).user_id
         except AttributeError:
             # Admin who does not include token, but is logged in can still use API
-            user = request.user.id
+            token_user = request.user.id
 
-        queryset = StoredImage.objects.filter(owner=user)
+        queryset = StoredImage.objects.filter(owner=token_user)
         serializer = StoredImageSerializer(queryset, many=True, context={"request": request})
         return Response(serializer.data)
 
@@ -42,15 +50,23 @@ class ImageUploadView(viewsets.ViewSet):
         Lists specific uploaded image and related thumbnails
         """
         try:
-            # Normal user should include token in his header
-            token = Token.objects.select_related('user__apiuserprofile').get(key=request.META.get('HTTP_AUTHORIZATION')
-                                                                             .split()[1])
+            # Normal user should include token or jwt token in his header
+            request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
+            if request_token[0] == "Bearer":
+                data = TokenBackend(algorithm='HS256').decode(request_token[1], verify=False)
+                token_user_id = data['user_id']
+                # token_user = User.objects.get(id=token_user_id).id
+            elif request_token[0] == "Token":
+                token_user_id = Token.objects.get(key=request_token[1]).only('user_id').user_id
+                # token_user = User.objects.get(id=token_user_id).id
+                # token_user = User.objects.select_related('apiuserprofile').get(id=token_user_id)
+            token_user = User.objects.select_related('apiuserprofile').get(id=token_user_id)
         except AttributeError:
             # Admin who does not include token, but is logged in can still use API
-            token = request.user
+            token_user = request.user
 
         try:
-            queryset = StoredImage.objects.get(owner=token.user.apiuserprofile.id, id=pk)
+            queryset = StoredImage.objects.get(owner=token_user.apiuserprofile.id, id=pk)
         except StoredImage.DoesNotExist:
             data = {"detail": "Item not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
@@ -64,23 +80,29 @@ class ImageUploadView(viewsets.ViewSet):
         timed thumbnails
         """
         try:
-            # Normal user should include token in his header
-            user = Token.objects.get(key=request.META.get('HTTP_AUTHORIZATION')
-                                     .split()[1]).only('user_id')
+            # Normal user should include token or jwt token in his header
+            request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
+            if request_token[0] == "Bearer":
+                data = TokenBackend(algorithm='HS256').decode(request_token[1], verify=False)
+                token_user_id = data['user_id']
+                token_user = User.objects.get(id=token_user_id)
+            elif request_token[0] == "Token":
+                token_user = Token.objects.get(key=request_token[1]).only('user_id')
+                # token_user = User.objects.get(id=token_user_id).id
         except AttributeError:
             # Admin who does not include token, but is logged in can still use API
-            user = request.user
+            token_user = request.user
 
         serializer = StoredImageSerializer(data=request.data, context={"request": request})  # image sent by user
 
         # Check permissions, and create all permitted thumbnails
         if serializer.is_valid():
-            serializer.save(owner=user.apiuserprofile)
+            serializer.save(owner=token_user.apiuserprofile)
 
             # Get user permissions, custom thumbnail sizes and original image object
             queryset_permissions = APIUserProfile.objects.select_related('account_type') \
-                .prefetch_related('account_type__custom_size').get(user=user.id)
-            source_image = StoredImage.objects.filter(owner=user.apiuserprofile).latest('id')
+                .prefetch_related('account_type__custom_size').get(user=token_user.id)
+            source_image = StoredImage.objects.filter(owner=token_user.apiuserprofile).latest('id')
 
             # Create all thumbnail images, assign them to specific URLs
             # TODO move size strings to constant variables to allow easier modification+possibly
@@ -147,21 +169,42 @@ class TimeLimitedThumbnailView(viewsets.ViewSet):
         Checks authorization of user, then creates a time limited thumbnail if user permission allows it
         """
         try:
-            # Normal user should include token in his header
-            user = Token.objects.get(key=request.META.get('HTTP_AUTHORIZATION')
-                                     .split()[1]).only('user_id')
+            # Normal user should include token or jwt token in his header
+            request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
+            if request_token[0] == "Bearer":
+                data = TokenBackend(algorithm='HS256').decode(request_token[1], verify=False)
+                token_user_id = data['user_id']
+                token_user = User.objects.get(id=token_user_id)
+            elif request_token[0] == "Token":
+                token_user_id = Token.objects.get(key=request_token[1]).only('user_id').user_id
+                token_user = User.objects.get(id=token_user_id)
         except AttributeError:
             # Admin who does not include token, but is logged in can still use API
-            user = request.user
+            token_user = request.user
 
         request_data_cleared = request.data
-        del request_data_cleared['type']
-        del request_data_cleared['expire_time']
+        # If file key is not present, serializer.is_valid() will detect it and return proper response
+        if 'file' in request_data_cleared.keys():
+            if 'type' in request_data_cleared.keys() and \
+                    'expire_time' in request_data_cleared.keys():
+                # Both fields won't be used directly by serializer. Instead they are used to mannualy
+                # create required data
+                del request_data_cleared['type']
+                del request_data_cleared['expire_time']
+            else:
+                # Prepare error response informing about lack of specific required keys in the request
+                error_response = {}
+                if 'type' not in request_data_cleared.keys():
+                    error_response['type'] = "This field is required."
+                if 'expire_time' not in request_data_cleared.keys():
+                    error_response['expire_time'] = "This field is required."
+                return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = TimeLimitedImageSerializer(data=request_data_cleared, context={"request": request})
 
         if serializer.is_valid():
             queryset_permissions = APIUserProfile.objects.select_related('account_type') \
-                .prefetch_related('account_type__custom_size').get(user=user)
+                .prefetch_related('account_type__custom_size').get(user=token_user)
 
             img_expire_time = request.POST.get('expire_time', '')
             img_type = request.POST.get('type', '')
@@ -178,12 +221,12 @@ class TimeLimitedThumbnailView(viewsets.ViewSet):
                 if img_type not in related_custom_sizes:
                     custom_size_permission = False
             if custom_time_permission is False or custom_size_permission is False:
-                error_msg = "Your profile type is not allowed to create time limited or this type of thumbnail"
+                error_msg = "Your profile type does not permit to create time limited or this type of thumbnail"
                 return Response(error_msg, status=status.HTTP_403_FORBIDDEN)
 
-            serializer.save(owner=user.apiuserprofile)
+            serializer.save(owner=token_user.apiuserprofile)
 
-            source_image = StoredImage.objects.filter(owner=user.apiuserprofile).latest('id')
+            source_image = StoredImage.objects.filter(owner=token_user.apiuserprofile).latest('id')
 
             options = {'size': (img_type, img_type), 'upscale': True, 'crop': True}
             img = get_thumbnailer(source_image.file).get_thumbnail(options)

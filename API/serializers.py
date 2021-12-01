@@ -1,5 +1,5 @@
+from API.models import StoredImage, GeneratedImage
 from rest_framework import serializers
-from API.models import StoredImage, APIUserProfile, AccountTypePermissions, GeneratedImage
 
 
 class GeneratedImageSerializer(serializers.ModelSerializer):

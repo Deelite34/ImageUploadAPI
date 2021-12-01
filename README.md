@@ -20,7 +20,9 @@ Create user account that will use token to access API.
 Create tables:   
 a) Account type permissions: contains info on permissions for account type, allowed custom thumbnail sizes(custom thumbnails are square)  
 b) Api user profiles: assigns user to account type created above  
-You can start sending requests to endpoints specified in docs. First you should upload image to /api/all/ or /api/timed/  
+You can start sending requests to endpoints specified in docs. First you should get token or jwt token trought
+`api/auth/token/login` or `api/auth/jwt/create/` endpoint, and include it in request header.
+After that you can upload first image to /api/all/ or /api/timed/ to get thumbnails.
 
 # Tests
 To run tests, enter web docker container trough bash and run command `pytest`

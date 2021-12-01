@@ -10,7 +10,7 @@ When using django token, user needs to add `Authorization` key and `Token <repla
 and with JWT token: `Authorization` key and `Bearer <replace-this-with-jwt-token>` as value.   
 
 ## Installation and configuration
-Configure `example.env` file with data that will be used for postgres database, and rename it to `.env`  
+Configure `example.env` file with data that will be used for postgres database - replace words starting with "replace", and rename it to `.env`  
 Run container `docker-compose up`. Requirements.txt will be automatically installed.  
 Access container using bash and run commands:  
 - Apply migrations `python manage.py migrate`  

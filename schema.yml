@@ -1,0 +1,750 @@
+openapi: 3.0.3
+info:
+  title: ImageUploadAPI
+  version: 1.0.0
+  description: API documentation for ImageUploadAPI.
+paths:
+  /api/all/:
+    get:
+      operationId: all_retrieve
+      description: Lists all images and related thumbnails for specific user
+      tags:
+      - all
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                200OK:
+                  value:
+                    id: 0
+                    file: string
+                    thumbnails:
+                    - id: 0
+                      type: 350
+                      image_url: localhost:8000/i/qwertUbe9COTEy/
+                      expire_date: '2021-12-01T16:44:19.723Z'
+                      created: '2021-12-01T16:44:19.723Z'
+                  summary: 200 OK
+                  description: Response when user sends get request.
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                401NoAuthorizationProvided:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: 401 No authorization provided
+                  description: Response when user does not provide token or jwt token
+                    in request header
+          description: ''
+    post:
+      operationId: all_create
+      description: |-
+        Checks authorization of user, then creates thumbnails for all available for user profile permissions, except
+        timed thumbnails
+      parameters:
+      - in: query
+        name: file
+        schema:
+          type: string
+        description: attached image
+        required: true
+      tags:
+      - all
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoredImage'
+            examples:
+              RequestBody:
+                value:
+                  file: attached file
+                summary: request body
+                description: File must be an image of png or jpg type.
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StoredImage'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StoredImage'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                201ThumbnailCreated:
+                  value:
+                    id: 1
+                    file: http://localhost:8000/media/user_1/image_name.png
+                    thumbnails:
+                      200x200: localhost:8000/i/qwertmDw5pmYm9O/
+                      400x400: localhost:8000/i/qwerte7EiCdMyAX/
+                      840x680: localhost:8000/i/qwertD58FxlnpLg/
+                      500x500: localhost:8000/i/qwert6mZc15bZap/
+                      1000x1000: localhost:8000/i/qwertAOGmWghPlz/
+                  summary: 201 Thumbnail created
+                  description: Example response when image(of size 840x680 is sent
+                    and thumbnails are created successfully
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                400NoFileParameter:
+                  value:
+                    file:
+                    - No file was submitted.
+                  summary: 400 No file parameter
+                  description: Response when 'file' parameter is not included.
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                401NoAuthorizationProvided:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: 401 No authorization provided
+                  description: Response when user does not provide token or jwt token
+                    in request header
+          description: ''
+  /api/all/{id}/:
+    get:
+      operationId: all_retrieve_2
+      description: Lists specific uploaded image and related thumbnails if it exists,
+        and user owns it.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        description: ID number of image passed trough url
+        required: true
+      tags:
+      - all
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                201ThumbnailRetrievedSuccessfully:
+                  value:
+                    id: 1
+                    file: http://localhost:8000/media/user_1/image_name.png
+                    thumbnails:
+                    - id: 1
+                      type: 200x200
+                      image_url: localhost:8000/i/qwertUbe9COTEy/
+                      expire_date: 'null'
+                      created: '2021-12-01T16:16:04.917572Z'
+                    - id: 2
+                      type: 400x400
+                      image_url: localhost:8000/i/qwertlH32N03SMm/
+                      expire_date: 'null'
+                      created: '2021-12-01T16:16:04.917618Z'
+                    - id: 3
+                      type: 840x680
+                      image_url: localhost:8000/i/qwertZ2Bg9zXp3M/
+                      expire_date: 'null'
+                      created: '2021-12-01T16:16:04.917646Z'
+                    - id: 4
+                      type: 500x500
+                      image_url: localhost:8000/i/qwerteAry621ywC/
+                      expire_date: 'null'
+                      created: '2021-12-01T16:16:04.917672Z'
+                    - id: 5
+                      type: 1000x1000
+                      image_url: localhost:8000/i/f2qwertnlboYlD1/
+                      expire_date: 'null'
+                      created: '2021-12-01T16:16:04.917696Z'
+                  summary: 201 thumbnail retrieved successfully
+                  description: Response when user is owner of image and it does exist.
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                401NoAuthorizationProvided:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: 401 No authorization provided
+                  description: Response when user does not provide token or jwt token
+                    in request header
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                404ThumbnailNotFound:
+                  value:
+                    detail: Item not found
+                  summary: 404 thumbnail not found
+                  description: Response when image with id does not exist or is not
+                    owned by user.
+          description: ''
+  /api/auth/jwt/create/:
+    post:
+      operationId: auth_jwt_create_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/auth/jwt/refresh/:
+    post:
+      operationId: auth_jwt_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/auth/jwt/verify/:
+    post:
+      operationId: auth_jwt_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerify'
+          description: ''
+  /api/auth/token/login/:
+    post:
+      operationId: auth_token_login_create
+      description: Use this endpoint to obtain user authentication token.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenCreate'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenCreate'
+          description: ''
+  /api/auth/token/logout/:
+    post:
+      operationId: auth_token_logout_create
+      description: Use this endpoint to logout user (remove user authentication token).
+      tags:
+      - auth
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/timed/:
+    post:
+      operationId: timed_create
+      description: Checks authorization of user, then creates a time limited thumbnail
+        if user permission allows it
+      parameters:
+      - in: query
+        name: expire_time
+        schema:
+          type: string
+        description: integer
+        required: true
+      - in: query
+        name: file
+        schema:
+          type: string
+        description: attached image
+        required: true
+      - in: query
+        name: type
+        schema:
+          type: string
+        description: integer
+        required: true
+      tags:
+      - timed
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimeLimitedImage'
+            examples:
+              RequestBody:
+                value:
+                  file: attached file
+                  type: integer
+                  expire_time: integer
+                summary: request body
+                description: 'File must be an image of png or jpg type, type is integer
+                  describing lenght of side of square shaped thumbnail to be created,
+                  and expire_time is a value from 300 to 30000 describing expiration
+                  time in seconds. '
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TimeLimitedImage'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TimeLimitedImage'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                201ThumbnailCreated:
+                  value:
+                    id: 1
+                    file: http://localhost:8000/media/user_1/image_name.png
+                    thumbnails:
+                      '200': localhost:8000/i/3PwncHZUWiZuCZr/
+                  summary: 201 Thumbnail created
+                  description: Example response when thumbnail gets created successfully.
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                400NoFileParameter:
+                  value:
+                    file:
+                    - No file was submitted.
+                  summary: 400 No file parameter
+                  description: Response when 'file' parameter is not included.
+                400NoTypeOrExpireTimeParameter:
+                  value:
+                    type: This field is required.
+                    expire_time: This field is required.
+                  summary: 400 No type or expire_time parameter
+                  description: Response either or both 'type' or 'expire_time' parameters
+                    are not included.
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                401NoAuthorizationProvided:
+                  value:
+                    detail: Authentication credentials were not provided.
+                  summary: 401 No authorization provided
+                  description: Response when user does not provide token or jwt token
+                    in request header
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                403PermissionError:
+                  value:
+                    error: Your profile type does not permit to create time limited
+                      or this type of thumbnail
+                  summary: 403 Permission error
+                  description: Response when user profile type is not allowed to create
+                    time limited thumbnails.
+          description: ''
+components:
+  schemas:
+    GeneratedImage:
+      type: object
+      description: Helper serializer, used in StoredImageSerializer
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        type:
+          type: string
+          maxLength: 100
+        image_url:
+          type: string
+          readOnly: true
+        expire_date:
+          type: string
+          format: date-time
+          nullable: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created
+      - id
+      - image_url
+      - type
+    StoredImage:
+      type: object
+      description: Displays info on all images and related thumbnails for specified
+        user
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        file:
+          type: string
+          format: uri
+        thumbnails:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratedImage'
+          readOnly: true
+      required:
+      - file
+      - id
+      - thumbnails
+    TimeLimitedImage:
+      type: object
+      description: |-
+        When user sends expire_time and type fields with other data to serializer, those fields are used only in
+        the view, to generate specified thumbnails.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        file:
+          type: string
+          format: uri
+        type:
+          type: integer
+          maximum: 4000
+          minimum: 50
+          readOnly: true
+        expire_time:
+          type: integer
+          maximum: 30000
+          minimum: 300
+          readOnly: true
+      required:
+      - expire_time
+      - file
+      - id
+      - type
+    TokenCreate:
+      type: object
+      properties:
+        password:
+          type: string
+        username:
+          type: string
+    TokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - password
+      - refresh
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    TokenVerify:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+      required:
+      - token
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
+externalDocs:
+  description: source code
+  url: https://github.com/Deelite34/ImageUploadAPI

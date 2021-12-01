@@ -24,4 +24,9 @@ Create tables:
 To run tests, enter web docker container trough bash and run command `pytest`
 
 # Endpoint documentation
-TODO
+Documentation can be found after application installation under /api/schema/swagger-ui/ address.
+Alternatively, schema can be generated and viewed without downloading project:
+1. Download schema.yml file from repository
+2. Go to https://editor.swagger.io/ 
+3. File->Import-> select schema.yml file and send it
+4. Same documentation as in the project will be generated.

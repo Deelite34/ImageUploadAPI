@@ -64,8 +64,7 @@ SIMPLE_JWT = {
 DEBUG = True
 
 if DEBUG:
-    import socket  # only if you haven't already imported this
-
+    import socket
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1', '10.0.2.2']
 
@@ -86,7 +85,9 @@ INSTALLED_APPS = [
 
     'easy_thumbnails',  # Thumbnail generation
     'debug_toolbar',    # Development and optimisation helper
-    'djoser',           # Allows to send credentials and receive token required for api requests
+    'djoser',           # Allows to send credentials to receive token required for api requests
+    'drf_spectacular',         # API docs generation
+    'drf_spectacular_sidecar'  # Required for Django collectstatic discovery
 
 ]
 
@@ -100,6 +101,18 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# https://drf-spectacular.readthedocs.io/en/latest/settings.html
+SPECTACULAR_SETTINGS = {
+    'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'REDOC_DIST': 'SIDECAR',
+    'TITLE': 'ImageUploadAPI',
+    'DESCRIPTION': 'API documentation for ImageUploadAPI.',
+    'VERSION': '1.0.0',
+    'EXTERNAL_DOCS': {'description': 'source code',
+                      'url': 'https://github.com/Deelite34/ImageUploadAPI'}
+}
 
 ROOT_URLCONF = 'ImageUploadAPI.urls'
 
@@ -174,5 +187,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ]
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }

@@ -12,4 +12,5 @@ router.register('timed', TimeLimitedThumbnailView, basename='timed')
 urlpatterns = [
     path('', include(router.urls), name='thumbnail'),
     path('auth/', include('djoser.urls.authtoken')),
+    path('auth/', include('djoser.urls.jwt')),
 ]

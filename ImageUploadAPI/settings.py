@@ -1,6 +1,8 @@
 import os
+from datetime import timedelta
 from os import environ
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -13,9 +15,6 @@ MEDIA_URL = '/media/'
 TEST_API_DIR = os.path.join(BASE_DIR, 'api', 'test')
 TEST_MEDIA_DIR = os.path.join(BASE_DIR, 'tests_media')
 
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'staticfiles'),
-)
 
 load_dotenv()
 DB_NAME = environ['DB_NAME']
@@ -30,15 +29,46 @@ INTERNAL_IPS = [
 
 SECRET_KEY = environ['SECRET_KEY']
 
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=20),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'UPDATE_LAST_LOGIN': False,
+
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+
+    'JTI_CLAIM': 'jti',
+
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
+
 DEBUG = True
 
 if DEBUG:
-    import socket  # only if you haven't already imported this
+    import socket
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1', '10.0.2.2']
 
 ALLOWED_HOSTS = []
-
 
 INSTALLED_APPS = [
     'API',
@@ -55,7 +85,9 @@ INSTALLED_APPS = [
 
     'easy_thumbnails',  # Thumbnail generation
     'debug_toolbar',    # Development and optimisation helper
-    'djoser',           # Allows to send credentials and receive token required for api requests
+    'djoser',           # Allows to send credentials to receive token required for api requests
+    'drf_spectacular',         # API docs generation
+    'drf_spectacular_sidecar'  # Required for Django collectstatic discovery
 
 ]
 
@@ -69,6 +101,18 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# https://drf-spectacular.readthedocs.io/en/latest/settings.html
+SPECTACULAR_SETTINGS = {
+    'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'REDOC_DIST': 'SIDECAR',
+    'TITLE': 'ImageUploadAPI',
+    'DESCRIPTION': 'API documentation for ImageUploadAPI.',
+    'VERSION': '1.0.0',
+    'EXTERNAL_DOCS': {'description': 'source code',
+                      'url': 'https://github.com/Deelite34/ImageUploadAPI'}
+}
 
 ROOT_URLCONF = 'ImageUploadAPI.urls'
 
@@ -89,7 +133,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ImageUploadAPI.wsgi.application'
-
 
 DATABASES = {
     'default': {
@@ -137,12 +180,13 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-    ]
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }

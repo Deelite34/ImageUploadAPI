@@ -15,10 +15,12 @@ Run container `docker-compose up`. Requirements.txt will be automatically instal
 Access container using bash and run commands:  
 - Apply migrations `python manage.py migrate`  
 - Create admin account `python manage.py createsuperuser`  
-Log in as super user in admin panel. Create user account that will use token to access API.  
+Log in as super user in admin panel.  
+Create user account that will use token to access API.  
 Create tables:   
-- Account type permissions: contains info on permissions for account type, allowed custom thumbnail sizes(custom thumbnails are square)  
-- Api user profiles: assigns user to account type created above  
+a) Account type permissions: contains info on permissions for account type, allowed custom thumbnail sizes(custom thumbnails are square)  
+b) Api user profiles: assigns user to account type created above  
+You can start sending requests to endpoints specified in docs. First you should upload image to /api/all/ or /api/timed/  
 
 # Tests
 To run tests, enter web docker container trough bash and run command `pytest`

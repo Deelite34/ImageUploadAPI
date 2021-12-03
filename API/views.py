@@ -1,3 +1,4 @@
+import jwt
 from API.models import StoredImage, APIUserProfile, GeneratedImage
 from API.serializers import StoredImageSerializer, TimeLimitedImageSerializer
 from API.utils import set_generated_image_model_slug_and_expire_date
@@ -9,7 +10,7 @@ from rest_framework.authtoken.admin import User
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.backends import TokenBackend
+from ImageUploadAPI.settings import SECRET_KEY
 
 
 class ImageUploadView(viewsets.ViewSet):
@@ -57,23 +58,19 @@ class ImageUploadView(viewsets.ViewSet):
         """
         Lists all images and related thumbnails for specific user
         """
-        try:
-            # Normal user should include token or jwt token in his header
-            request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
-            if request_token[0] == "Bearer":
-                data = TokenBackend(algorithm='HS256').decode(request_token[1], verify=False)
-                token_user_id = data['user_id']
-                token_user = User.objects.get(id=token_user_id).user_id
-            elif request_token[0] == "Token":
-                token_user_id = Token.objects.get(key=request_token[1]).only('user_id').user_id
-                token_user = User.objects.get(id=token_user_id).user_id
-        except AttributeError:
-            # Admin who does not include token, but is logged in can still use API
-            token_user = request.user.id
+        # Normal user should include token or jwt token in his header
+        request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
+        if request_token[0] == "Bearer":
+            data = jwt.decode(jwt=request_token[1], key=SECRET_KEY, algorithms=['HS256'])
+            token_user_id = data['user_id']
+        elif request_token[0] == "Token":
+            token_user_id = Token.objects.get(key=request_token[1]).user_id
+        token_user = User.objects.select_related('apiuserprofile').get(id=token_user_id)
 
-        queryset = StoredImage.objects.filter(owner=token_user)
+        queryset = StoredImage.objects.filter(owner=token_user.apiuserprofile.id)
         serializer = StoredImageSerializer(queryset, many=True, context={"request": request})
         return Response(serializer.data)
+
 
     @extend_schema(  # drf-spectacular documentation extension
         parameters=[
@@ -152,18 +149,14 @@ class ImageUploadView(viewsets.ViewSet):
         """
         Lists specific uploaded image and related thumbnails if it exists, and user owns it.
         """
-        try:
-            # Normal user should include token or jwt token in his header
-            request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
-            if request_token[0] == "Bearer":
-                data = TokenBackend(algorithm='HS256').decode(request_token[1], verify=False)
-                token_user_id = data['user_id']
-            elif request_token[0] == "Token":
-                token_user_id = Token.objects.get(key=request_token[1]).only('user_id').user_id
-            token_user = User.objects.select_related('apiuserprofile').get(id=token_user_id)
-        except AttributeError:
-            # Admin who does not include token, but is logged in can still use API
-            token_user = request.user
+        request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
+        if request_token[0] == "Bearer":
+            data = jwt.decode(jwt=request_token[1], key=SECRET_KEY, algorithms=['HS256'])
+            token_user_id = data['user_id']
+        elif request_token[0] == "Token":
+            token_user_id = Token.objects.get(key=request_token[1]).user_id
+        # Identify user by token sent by user in request header
+        token_user = User.objects.select_related('apiuserprofile').get(id=token_user_id)
 
         try:
             queryset = StoredImage.objects.get(owner=token_user.apiuserprofile.id, id=pk)
@@ -227,7 +220,7 @@ class ImageUploadView(viewsets.ViewSet):
             # Normal user should include token or jwt token in his header
             request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
             if request_token[0] == "Bearer":
-                data = TokenBackend(algorithm='HS256').decode(request_token[1], verify=False)
+                data = jwt.decode(jwt=request_token[1], key=SECRET_KEY, algorithms=['HS256'])
                 token_user_id = data['user_id']
                 token_user = User.objects.get(id=token_user_id)
             elif request_token[0] == "Token":
@@ -379,7 +372,7 @@ class TimeLimitedThumbnailView(viewsets.ViewSet):
             # Normal user should include token or jwt token in his header
             request_token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')
             if request_token[0] == "Bearer":
-                data = TokenBackend(algorithm='HS256').decode(request_token[1], verify=False)
+                data = jwt.decode(jwt=request_token[1], key=SECRET_KEY, algorithms=['HS256'])
                 token_user_id = data['user_id']
                 token_user = User.objects.get(id=token_user_id)
             elif request_token[0] == "Token":
@@ -423,12 +416,13 @@ class TimeLimitedThumbnailView(viewsets.ViewSet):
             elif img_type == '400':
                 custom_size_permission = queryset_permissions.account_type.create_400px_thumbnail_perm
             else:
-                related_custom_sizes = queryset_permissions.account_type.custom_size
+                related_custom_sizes = queryset_permissions.account_type.custom_size.all()
                 custom_size_permission = True
+                # Image type requested by user is not allowed by his profile type
                 if img_type not in related_custom_sizes:
                     custom_size_permission = False
             if custom_time_permission is False or custom_size_permission is False:
-                error_msg = {"error": "Your profile type does not have permission to create time limited or this type "
+                error_msg = {"error": "Your profile type does not have permission to create time limited or this size "
                                       "of thumbnail"
                              }
                 return Response(error_msg, status=status.HTTP_403_FORBIDDEN)
@@ -436,10 +430,8 @@ class TimeLimitedThumbnailView(viewsets.ViewSet):
             serializer.save(owner=token_user.apiuserprofile)
 
             source_image = StoredImage.objects.filter(owner=token_user.apiuserprofile).latest('id')
-
             options = {'size': (img_type, img_type), 'upscale': True, 'crop': True}
             img = get_thumbnailer(source_image.file).get_thumbnail(options)
-
             thumbnail = GeneratedImage.objects.create(source_image=source_image,
                                                       modified_image=img.url,
                                                       type=str(img_type),

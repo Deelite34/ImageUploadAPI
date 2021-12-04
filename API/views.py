@@ -71,7 +71,6 @@ class ImageUploadView(viewsets.ViewSet):
         serializer = StoredImageSerializer(queryset, many=True, context={"request": request})
         return Response(serializer.data)
 
-
     @extend_schema(  # drf-spectacular documentation extension
         parameters=[
             OpenApiParameter(name='id', location=OpenApiParameter.PATH,

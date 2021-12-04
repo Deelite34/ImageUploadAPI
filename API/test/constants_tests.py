@@ -12,5 +12,5 @@ MOCK_WRONG_FILE_TYPE_PATH = "test_text.txt"
 MOCK_ALT_IMAGE_PATH = "test_image_b.png"
 CONTENT_TYPE_PNG = 'image/png'
 CONTENT_TYPE_DEFAULT = 'text/plain'
-TEST_MEDIA_ROOT = os.path.join(BASE_DIR, 'tests_media')
-TEST_MEDIA_URL = '/tests_media/'
+TESTS_MEDIA_ROOT = os.path.join(BASE_DIR, 'tests_media')
+TESTS_MEDIA_URL = '/tests_media/'

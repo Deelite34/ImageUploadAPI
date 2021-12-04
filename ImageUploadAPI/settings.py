@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 
 DEBUG = True
-non_production = False  # When True, some helper variables are used
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,8 +16,7 @@ STATIC_URL = 'static/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 TEST_API_DIR = os.path.join(BASE_DIR, 'api', 'test')
-TEST_MEDIA_DIR = os.path.join(BASE_DIR, 'tests_media')
-#STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
+TESTS_MEDIA_DIR = os.path.join(BASE_DIR, 'tests_media')  # Thumbnails created during tests
 
 load_dotenv()
 DB_NAME = environ['DB_NAME']
@@ -64,13 +62,6 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
-
-
-
-if DEBUG:
-    import socket
-    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
-    INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1', '10.0.2.2']
 
 ALLOWED_HOSTS = ['localhost']
 

@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile, StoredImage, GeneratedImage
-from API.test.constants_tests import TEST_USER_PASS, TEST_USER_LOGIN, TEST_MEDIA_ROOT, TEST_MEDIA_URL, \
+from API.test.constants_tests import TEST_USER_PASS, TEST_USER_LOGIN, TESTS_MEDIA_ROOT, TESTS_MEDIA_URL, \
     TEST_PROFILE_TYPE_NAME
 from API.test.utils import db_data_preparation
 
@@ -13,7 +13,7 @@ from API.test.utils import db_data_preparation
 pytestmark = pytest.mark.django_db  # all test functions can access db
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_image_webpage():
     """
     Create thumbnail, test existence of corresponding image page where img should be visible

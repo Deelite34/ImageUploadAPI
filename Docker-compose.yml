@@ -21,12 +21,11 @@ services:
       && pip install -q -r requirements.txt
       && python manage.py collectstatic --no-input
       && gunicorn ImageUploadAPI.wsgi:application --bind 0.0.0.0:8000"
-    # && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/code
       - ./static:/code/static
       - ./media:/code/media/
-      - ./test_media:/code/test_media
+      - ./tests_media:/code/tests_media
     ports:
       - 8000:8000
     depends_on:
@@ -40,6 +39,5 @@ services:
     volumes:
       - ./static:/code/static
       - ./media:/code/media/
-      - ./test_media:/code/test_media
 volumes:
   static:

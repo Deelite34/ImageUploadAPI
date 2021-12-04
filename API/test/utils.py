@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile, StoredImage, GeneratedImage
 
 from API.test.constants_tests import TEST_USER_LOGIN, TEST_USER_PASS, ENDPOINT_ALL, \
-    CONTENT_TYPE_DEFAULT, MOCK_IMAGE_PATH, MOCK_WRONG_FILE_TYPE_PATH, TEST_MEDIA_ROOT, TEST_MEDIA_URL, \
+    CONTENT_TYPE_DEFAULT, MOCK_IMAGE_PATH, MOCK_WRONG_FILE_TYPE_PATH, TESTS_MEDIA_ROOT, TESTS_MEDIA_URL, \
     CONTENT_TYPE_PNG, MOCK_ALT_IMAGE_PATH, TEST_PROFILE_TYPE_NAME
 
 

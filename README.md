@@ -3,31 +3,41 @@ Rest API that allows user to upload images and receive response containing multi
 User can view specific thumbnail he received using link in response.  
 Timed thumbnail of specific type(size) is viewable for 300 to 30000 seconds, depending on passed by its creator parameters.  
 
-# Authorization
-To use API, one of authorization methods needs to be user. Admin logged in using admin panel can also choose to not add anything to his header, pages will still work.
-Typical user however needs a django token or JWT token.  
-When using django token, user needs to add `Authorization` key and `Token <replace-this-with-django-token>` as value,  
-and with JWT token: `Authorization` key and `Bearer <replace-this-with-jwt-token>` as value.   
+## Features
+- Uses django rest API, django, docker, nginx server with gunicorn
+- Upload image to have server generate various-sized thumbnails, or a single time-limited thumbnail, viewable under unique urls
+- Media and static files served by nginx
+- Tests with pytest
+- Authorization through django token or JWT token
+
+## Authorization
+To use API, one of authorization methods needs to be used, django token or JWT token.  
+To get one of token types, send login and password to `api/auth/token/login` or `api/auth/jwt/create/` endpoint.
+To be able to send authorized requests, add to your request headers `Authorization` key and value:
+- `Token addtokenhere` when using django token
+- `Bearer addjwttokenhere` when using jwt token 
+
 
 ## Installation and configuration
-Configure `example.env` file with data that will be used for postgres database - replace words starting with "replace", and rename it to `.env`  
-Run container `docker-compose up`. Requirements.txt will be automatically installed.  
-Access container using bash and run commands:  
-- Apply migrations `python manage.py migrate`  
-- Create admin account `python manage.py createsuperuser`  
+Configure `example.env` file with data that will be used for postgres database - replace words starting with "replace",  
+and rename it to `.env`.  
+Run container `docker-compose up`. Requirements.txt will be automatically installed, pip updated, static files collected, and nginx/gunicorn ran.  
+Access container using `docker ps` to find out id of web container, and `docker exec -it INPUTIDOFCONTAINERHERE bash` to enter container, and run commands:  
+`python manage.py migrate` Apply migrations  
+`python manage.py createsuperuser` Create admin account  
 Log in as super user in admin panel.  
-Create user account that will use token to access API.  
+Create user account, or use newly created admin account, that will use a token to access API.  
 Create tables:   
-a) Account type permissions: contains info on permissions for account type, allowed custom thumbnail sizes(custom thumbnails are square)  
-b) Api user profiles: assigns user to account type created above  
-You can start sending requests to endpoints specified in docs. First you should get token or jwt token trought
-`api/auth/token/login` or `api/auth/jwt/create/` endpoint, and include it in request header.
-After that you can upload first image to /api/all/ or /api/timed/ to get thumbnails.
+a) Account type permissions: contains info on permissions for account type, allowed custom thumbnail sizes(all thumbnails are square shaped, therefore size is a single number, like 500).    
+b) Api user profiles: assigns user to created account type.    
+Get auth token, details in Authorization section above.
+You can start sending requests to endpoints specified in api documentation.  
+Website can be found under url `http://localhost:8000/`  
 
-# Tests
-To run tests, enter web docker container trough bash and run command `pytest`
+## Tests
+To run tests, enter web docker container through bash and run command `pytest`
 
-# Endpoint documentation
+## Endpoint documentation
 Documentation can be found after application installation under /api/schema/swagger-ui/ address.
 Alternatively, schema can be generated and viewed without downloading project:
 1. Download schema.yml file from repository

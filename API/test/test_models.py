@@ -5,13 +5,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile,\
                        StoredImage, GeneratedImage
-from API.test.constants_tests import TEST_MEDIA_ROOT, TEST_MEDIA_URL, TEST_USER_PASS, TEST_USER_LOGIN
+from API.test.constants_tests import TESTS_MEDIA_ROOT, TESTS_MEDIA_URL, TEST_USER_PASS, TEST_USER_LOGIN
 
 
 pytestmark = pytest.mark.django_db
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_customthumbnailssize_to_string():
     size = 1000
 
@@ -21,7 +21,7 @@ def test_customthumbnailssize_to_string():
     assert queryset.__str__() == f'{queryset.size}x{queryset.size}'
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_accounttypepermisions_to_string():
     name = "test name"
 
@@ -30,7 +30,7 @@ def test_accounttypepermisions_to_string():
     assert queryset.__str__() == f'{name}'
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_apiuserprofile_to_string():
     test_user = User.objects.create(username=TEST_USER_LOGIN, password=TEST_USER_PASS)
 
@@ -40,7 +40,7 @@ def test_apiuserprofile_to_string():
     assert queryset.__str__() == f'{queryset.user.username}'
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_storedimage_to_string():
     test_user = User.objects.create(username=TEST_USER_LOGIN, password=TEST_USER_PASS)
     api_user_profile_object = APIUserProfile.objects.create(user=test_user)
@@ -54,7 +54,7 @@ def test_storedimage_to_string():
     assert image_object.__str__() == f"{os.path.basename('test_image.png')}"
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_generatedimage_to_string():
     test_user = User.objects.create(username=TEST_USER_LOGIN, password=TEST_USER_PASS)
     APIUserProfile.objects.create(user=test_user)

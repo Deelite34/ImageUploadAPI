@@ -8,7 +8,7 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
 from API.models import CustomThumbnailSize, AccountTypePermissions, APIUserProfile, StoredImage, GeneratedImage
 from API.test.constants_tests import TEST_USER_LOGIN, TEST_USER_PASS, ENDPOINT_ALL, \
-    CONTENT_TYPE_DEFAULT, MOCK_IMAGE_PATH, MOCK_WRONG_FILE_TYPE_PATH, TEST_MEDIA_ROOT, TEST_MEDIA_URL, \
+    CONTENT_TYPE_DEFAULT, MOCK_IMAGE_PATH, MOCK_WRONG_FILE_TYPE_PATH, TESTS_MEDIA_ROOT, TESTS_MEDIA_URL, \
     CONTENT_TYPE_PNG, MOCK_ALT_IMAGE_PATH, TEST_PROFILE_TYPE_NAME
 from API.test.utils import db_data_preparation, create_test_client
 
@@ -21,7 +21,7 @@ pytestmark = pytest.mark.django_db  # all test functions are permitted to access
 
 
 # Decorator will cause test user directories and images to be created in separate, easier to clean up directory
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_all_endpoint_list():
     """
     Create test data, then list all items then test response status and content
@@ -47,7 +47,7 @@ def test_all_endpoint_list():
     assert len(json_dict[1]['thumbnails'][0].keys()) == 5
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_all_endpoint_retrieve():
     """
     Create test data, then retrieve created item then test response status and content
@@ -69,7 +69,7 @@ def test_all_endpoint_retrieve():
     assert len(get_json_dict[0]['thumbnails'][0].keys()) == 5
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_all_endpoint_create():
     """
     Post image to /api/all/ and test response status, response structure and content
@@ -87,7 +87,7 @@ def test_all_endpoint_create():
     assert len(json_dict['thumbnails'].keys()) == 5
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_timed_endpoint_create():
     """
     Post image to /api/timed/ and test response status, response structure and content
@@ -110,7 +110,7 @@ def test_timed_endpoint_create():
     assert len(json_dict['thumbnails'].keys()) == 1
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_no_token_all_list():
     """
     Try to get (list) images without providing token
@@ -129,7 +129,7 @@ def test_no_token_all_list():
     assert len(json_dict.keys()) == 1
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_no_token_all_retrieve():
     """
     Try to get specific thumbnail without providing access token
@@ -150,7 +150,7 @@ def test_no_token_all_retrieve():
     assert len(get_json_dict.keys()) == 1
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_not_supported_request_type_response():
     """
     Test response when put or delete requests are made
@@ -169,7 +169,7 @@ def test_not_supported_request_type_response():
     assert len(json_dict_2.keys()) == 1
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_not_owned_item_retrieve():
     """
     Test retrieving thumbnail that user did not create
@@ -197,7 +197,7 @@ def test_not_owned_item_retrieve():
     assert len(get_json_dict) == 1
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_malformed_request_response():
     """
     Send request containing rubbish data and without included file
@@ -213,7 +213,7 @@ def test_malformed_request_response():
     assert json_dict['file'][0].startswith('No file was submitted')
 
 
-@override_settings(MEDIA_URL=TEST_MEDIA_URL, MEDIA_ROOT=TEST_MEDIA_ROOT)
+@override_settings(MEDIA_URL=TESTS_MEDIA_URL, MEDIA_ROOT=TESTS_MEDIA_ROOT)
 def test_send_wrong_file_format():
     """
     test sending not an image to api

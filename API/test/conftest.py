@@ -1,7 +1,7 @@
 import os
 import shutil
 import pytest
-from ImageUploadAPI.settings import TEST_API_DIR, TEST_MEDIA_DIR
+from ImageUploadAPI.settings import TEST_API_DIR, TESTS_MEDIA_DIR
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -12,8 +12,8 @@ def setup_and_teardown():
     yield
     # Will be executed after the last test
     print('Cleaning up created test thumbnails..')
-    folders = os.listdir(TEST_MEDIA_DIR)
+    folders = os.listdir(TESTS_MEDIA_DIR)
     for folder in folders:
-        directory = TEST_MEDIA_DIR + '/' + folder
+        directory = TESTS_MEDIA_DIR + '/' + folder
         print("Removing: " + directory)
         shutil.rmtree(directory)

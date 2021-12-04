@@ -17,13 +17,27 @@ services:
       - .env
     build: .
     command: >
-      sh -c "pip install --upgrade pip
-      && pip install -r requirements.txt
-      && python manage.py runserver 0.0.0.0:8000"
-
+      sh -c "pip install --upgrade --upgrade-strategy only-if-needed pip
+      && pip install -q -r requirements.txt
+      && python manage.py collectstatic --no-input
+      && gunicorn ImageUploadAPI.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - .:/code
+      - ./static:/code/static
+      - ./media:/code/media/
+      - ./tests_media:/code/tests_media
     ports:
-      - "8000:8000"
+      - 8000:8000
     depends_on:
       - db
+  nginx:
+    build: ./nginx
+    ports:
+      - 1337:80
+    depends_on:
+      - web
+    volumes:
+      - ./static:/code/static
+      - ./media:/code/media/
+volumes:
+  static:

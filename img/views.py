@@ -15,7 +15,7 @@ class DisplayImageView(View):
         img = GeneratedImage.objects.get(slug=slug)
         image_path = img.modified_image
 
-        # Check if image is expired
+        # Check if image is expired, same timezone as in database should be used
         utc = pytz.UTC
         expired = False
         if img.expire_date is not None:

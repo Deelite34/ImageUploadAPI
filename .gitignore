@@ -173,3 +173,6 @@ dmypy.json
 .uploads
 *.png
 *.jpg
+
+# Collected static files
+static/

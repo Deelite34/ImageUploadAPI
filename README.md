@@ -4,7 +4,7 @@ User can view specific thumbnail he received using link in response.
 Timed thumbnail of specific type(size) is viewable for 300 to 30000 seconds, depending on passed by its creator parameters.  
 
 ## Features
-- Uses django rest API, django, docker, docker-compose, nginx server with gunicorn
+- Uses django rest API, django, docker, docker-compose, postgresql, nginx server with gunicorn
 - Upload image to have server generate various-sized thumbnails, or a single time-limited thumbnail, viewable under unique urls
 - Media and static files served by nginx
 - Tests with pytest
